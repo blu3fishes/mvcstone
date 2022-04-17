@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "MVC Framework for sandstone typescript library",
   "main": "dist/index.js",
-  "types":"dist/index.d.ts",
-  "files":[
+  "types": "dist/index.d.ts",
+  "files": [
     "/dist"
   ],
   "scripts": {
@@ -14,6 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "sandstone": "^0.13.6",
+    "sandstone-cli": "^0.5.4",
     "typescript": "^4.6.3"
   }
 }

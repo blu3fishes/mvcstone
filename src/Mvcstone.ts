@@ -7,9 +7,11 @@ export function isMCFunction(dir: string) {
     descriptor: PropertyDescriptor
   ) {
     let originMethod = descriptor.value;
+    let path = target.prototype.functionPath;
+    if(path == undefined) path = "";
     descriptor.value = function (...args: any) {
       MCFunction(
-        dir,
+        path + dir,
         () => {
           originMethod.apply(this, args);
         },
@@ -26,6 +28,12 @@ export function Controller() {
     Object.getOwnPropertyNames(Object.getPrototypeOf(tg))
       .filter(propName => (propName !== 'constructor' && typeof tg[propName] === 'function'))
       .forEach(propName => tg[propName]());
+  }
+}
+
+export function FunctionPath(path: string) {
+  return (target: any) => {
+    target.prototype.functionPath = path;
   }
 }
 
@@ -78,24 +86,78 @@ export function isLoopBy(dir: string, tick: any) {
   };
 }
 
+export type ScoreboardCondition = '<' | '<=' | '>' | '==' | '>=' | '><' | '!=';
+
 // below is the class that is defined newly for more intuitive scoreboard variable usage.
 export class MVCScoreboard {
-  scoreboardName;
-  scoreboard;
-  criteria;
+  #scoreboardName;
+  #scoreboard;
+  #criteria;
+  #absolutes:number[] = [];
   constructor(scoreboardName: string, criteria: any) {
-    this.scoreboardName = scoreboardName;
-    this.criteria = criteria;
-    this.scoreboard = Objective.create(this.scoreboardName, this.criteria);
+    this.#scoreboardName = scoreboardName;
+    this.#criteria = criteria;
+    this.#scoreboard = Objective.create(this.#scoreboardName, this.#criteria);
   }
+
+  getName(): string {
+    return this.#scoreboardName;
+  }
+
   getSelector(selector: string): any {
-    return this.scoreboard(selector);
+    return this.#scoreboard(selector);
   }
-  getTellrawScore(selector: string): any {
+
+  setAbsolute(value:number) {
+    if (this.#absolutes.includes(value)) return;
+    this.#scoreboard(`#${value}`).set(value);
+    this.#absolutes.push(value);
+  }
+
+  set(selector:string, value:number) {
+    this.#scoreboard(selector).set(value);
+  }
+  add(selector:string, value:any) {
+    this.#scoreboard(selector).add(value);
+  }
+
+  setFrom(){
+
+  }
+  addFrom(){
+
+  }
+
+  if(selector: string, condition: ScoreboardCondition, otherScoreboardSelector:any) {
+    switch(condition){
+      case '><':
+        condition = '==';
+      case '==':
+        this.#scoreboard(selector).equalTo(otherScoreboardSelector);
+        break;
+      case '<=':
+        this.#scoreboard(selector).greaterOrEqualThan(otherScoreboardSelector);
+        break;
+      case '<':
+        this.#scoreboard(selector).greaterThan(otherScoreboardSelector);
+        break;
+      case '>':
+        this.#scoreboard(selector).lessThan(otherScoreboardSelector);
+        break;
+      case '>=':
+        this.#scoreboard(selector).lessOrEqualThan(otherScoreboardSelector);
+        break;
+      case '!=':
+        this.#scoreboard(selector).notEqualTo(otherScoreboardSelector);
+        break;
+    }
+  }
+
+  getTellraw(selector: string): any {
     return {
       "score":{
         "name": selector,
-        "objective":this.scoreboardName
+        "objective":this.#scoreboardName
       }
     }
   }
