@@ -163,7 +163,9 @@ export class MVCScoreboard {
    */
   setAbsolute(value: number) {
     if (this.#absolutes.includes(value)) return;
-    this.#scoreboard(`#${value}`).set(value);
+    MCFunction('__init__', () => {
+      this.#scoreboard(`#${value}`).set(value);
+    }, { onConflict: 'append' });
     this.#absolutes.push(value);
   }
   /**
@@ -230,7 +232,7 @@ export class MVCScoreboard {
    * returns operating statement for sandstone.
    * > usage :
    * > `this.calculate('@s', '+=', otherMVCScoreboard.getSelector)`;
-   *
+   * > `this.calculate('@s', '+=', 3)`
    * @param selector
    * @param operator
    * @param otherScoreboardSelector
@@ -238,44 +240,91 @@ export class MVCScoreboard {
   calculate(
     selector: string,
     operator: ScoreboardOperator,
-    otherScoreboardSelector: Score<string | undefined>
+    otherScoreboardSelector: Score<string | undefined> | number
   ) {
-    switch (operator) {
-      case "%=":
-        this.#scoreboard(selector).moduloBy(
-          otherScoreboardSelector.target,
-          otherScoreboardSelector.objective.name
-        );
-        break;
-      case "/=":
-        this.#scoreboard(selector).dividedBy(
-          otherScoreboardSelector.target,
-          otherScoreboardSelector.objective.name
-        );
-        break;
-      case "*=":
-        this.#scoreboard(selector).multipliedBy(
-          otherScoreboardSelector.target,
-          otherScoreboardSelector.objective.name
-        );
-        break;
-      case "+=":
-        this.#scoreboard(selector).add(
-          otherScoreboardSelector.target,
-          otherScoreboardSelector.objective.name
-        );
-        break;
-      case "-=":
-        this.#scoreboard(selector).remove(
-          otherScoreboardSelector.target,
-          otherScoreboardSelector.objective.name
-        );
-        break;
+    if (typeof otherScoreboardSelector == 'object') {
+      switch (operator) {
+        case "%=":
+          this.#scoreboard(selector).moduloBy(
+            otherScoreboardSelector.target,
+            otherScoreboardSelector.objective.name
+          );
+          break;
+        case "/=":
+          this.#scoreboard(selector).dividedBy(
+            otherScoreboardSelector.target,
+            otherScoreboardSelector.objective.name
+          );
+          break;
+        case "*=":
+          this.#scoreboard(selector).multipliedBy(
+            otherScoreboardSelector.target,
+            otherScoreboardSelector.objective.name
+          );
+          break;
+        case "+=":
+          this.#scoreboard(selector).add(
+            otherScoreboardSelector.target,
+            otherScoreboardSelector.objective.name
+          );
+          break;
+        case "-=":
+          this.#scoreboard(selector).remove(
+            otherScoreboardSelector.target,
+            otherScoreboardSelector.objective.name
+          );
+          break;
+      }
+    }
+    else if (typeof otherScoreboardSelector == 'number') {
+      this.setAbsolute(otherScoreboardSelector);
+      switch (operator) {
+        case "%=":
+          this.#scoreboard(selector).moduloBy(
+            `#${otherScoreboardSelector}`,
+            this.getName()
+          );
+          break;
+        case "/=":
+          this.#scoreboard(selector).dividedBy(
+            `#${otherScoreboardSelector}`,
+            this.getName()
+          );
+          break;
+        case "*=":
+          this.#scoreboard(selector).multipliedBy(
+            `#${otherScoreboardSelector}`,
+            this.getName()
+          );
+          break;
+        case "+=":
+          this.#scoreboard(selector).add(
+            `#${otherScoreboardSelector}`,
+            this.getName()
+          );
+          break;
+        case "-=":
+          this.#scoreboard(selector).remove(
+            `#${otherScoreboardSelector}`,
+            this.getName()
+          );
+          break;
+      }
+    }
+    else {
+      throw new Error('otherScoreboard value is not number or Score<>');
     }
   }
   /**
-   * returns condition for sandstone if statement
-   * usage : `_.if(this.if('@s', '==', otherMVCScoreboard()), () => { ... });`
+   * returns condition for sandstone if statement  
+   * usage #1 : 
+   * ```
+   * _.if(this.if('@s', '==', otherMVCScoreboard.getSelector('@s')).run(() => { ... });
+   * ```
+   * usage #2 : 
+   * ```
+   * _.if(this.if('@s', '==', 3)).run(() => { ... });
+   * ```
    * @param selector selector to select with this scoreboard.
    * @param {ScoreboardCondition} condition minecraft scoreboard operation conditions.
    * @param otherScoreboardSelector other MVCScoreboard.getSelector()
@@ -283,27 +332,55 @@ export class MVCScoreboard {
   if(
     selector: string,
     condition: ScoreboardCondition,
-    otherScoreboardSelector: Score<string | undefined>
+    otherScoreboardSelector: Score<string | undefined> | number
   ) {
-    switch (condition) {
-      case "><":
-        condition = "==";
-      case "==":
-        return this.#scoreboard(selector).equalTo(otherScoreboardSelector);
-      case "<=":
-        return this.#scoreboard(selector).greaterOrEqualThan(
-          otherScoreboardSelector
-        );
-      case "<":
-        return this.#scoreboard(selector).greaterThan(otherScoreboardSelector);
-      case ">":
-        return this.#scoreboard(selector).lessThan(otherScoreboardSelector);
-      case ">=":
-        return this.#scoreboard(selector).lessOrEqualThan(
-          otherScoreboardSelector
-        );
-      case "!=":
-        return this.#scoreboard(selector).notEqualTo(otherScoreboardSelector);
+    if (typeof otherScoreboardSelector == 'object') {
+      switch (condition) {
+        case "><":
+          condition = "==";
+        case "==":
+          return this.#scoreboard(selector).equalTo(otherScoreboardSelector);
+        case "<=":
+          return this.#scoreboard(selector).greaterOrEqualThan(
+            otherScoreboardSelector
+          );
+        case "<":
+          return this.#scoreboard(selector).greaterThan(otherScoreboardSelector);
+        case ">":
+          return this.#scoreboard(selector).lessThan(otherScoreboardSelector);
+        case ">=":
+          return this.#scoreboard(selector).lessOrEqualThan(
+            otherScoreboardSelector
+          );
+        case "!=":
+          return this.#scoreboard(selector).notEqualTo(otherScoreboardSelector);
+      }
+    }
+    else if (typeof otherScoreboardSelector == 'number') {
+      this.setAbsolute(otherScoreboardSelector);
+      switch (condition) {
+        case "><":
+          condition = "==";
+        case "==":
+          return this.#scoreboard(selector).equalTo(this.getSelector(`#${otherScoreboardSelector}`));
+        case "<=":
+          return this.#scoreboard(selector).greaterOrEqualThan(
+            this.getSelector(`#${otherScoreboardSelector}`)
+          );
+        case "<":
+          return this.#scoreboard(selector).greaterThan(this.getSelector(`#${otherScoreboardSelector}`));
+        case ">":
+          return this.#scoreboard(selector).lessThan(this.getSelector(`#${otherScoreboardSelector}`));
+        case ">=":
+          return this.#scoreboard(selector).lessOrEqualThan(
+            this.getSelector(`#${otherScoreboardSelector}`)
+          );
+        case "!=":
+          return this.#scoreboard(selector).notEqualTo(this.getSelector(`#${otherScoreboardSelector}`));
+      }
+    }
+    else {
+      throw new Error('otherScoreboard value is not number or Score<>');
     }
   }
 
